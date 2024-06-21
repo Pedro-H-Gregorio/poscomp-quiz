@@ -1,12 +1,7 @@
 from urllib import request
 import os
+from selenium import webdriver
 from bs4 import BeautifulSoup
-
-response = request.urlopen("https://www.sbc.org.br/documentos-da-sbc/category/153-provas-e-gabaritos-do-poscomp")
-html = response.read().decode('UTF-8')
-
-
-soup = BeautifulSoup(html, "html.parser")
 
 def get_href(tag):
   return tag.attrs['href']
@@ -15,34 +10,26 @@ def verify_class_tag(tag):
   return "class" not in list(tag.attrs)
 
 def download_pdf(lnk):
+  options = webdriver.ChromeOptions()
     
-    from selenium import webdriver
-    from time import sleep
-    
-    options = webdriver.ChromeOptions()
-    
-    download_folder = os.getcwd()
-    
-    profile = {"plugins.plugins_list": [{"enabled": False,
-                                         "name": "Chrome PDF Viewer"}],
-               "download.default_directory": download_folder,
-               "download.extensions_to_open": "",
-               "plugins.always_open_pdf_externally": True}
-    
-    options.add_experimental_option("prefs", profile)
-    
-    print("Downloading file from link: {}".format(lnk))
-        
-    driver = webdriver.Chrome(chrome_options = options)
-    driver.get(lnk)
-    
-    filename = lnk.split("/")[4].split(".cfm")[0]
-    print("File: {}".format(filename))
-    
-    print("Status: Download Complete.")
-    print("Folder: {}".format(download_folder))
-    
-    driver.close()
+  download_folder = os.getcwd()  
+  
+  profile = {"plugins.plugins_list": [{"enabled": False,
+                                        "name": "Chrome PDF Viewer"}],
+              "download.default_directory": download_folder,
+              "download.extensions_to_open": "",
+              "plugins.always_open_pdf_externally": True}
+  
+  options.add_experimental_option("prefs", profile)
+      
+  driver = webdriver.Chrome(options = options)
+  driver.get(lnk)
+  
+  driver.close()
+
+response = request.urlopen("https://www.sbc.org.br/documentos-da-sbc/category/153-provas-e-gabaritos-do-poscomp")
+html = response.read().decode('UTF-8')
+soup = BeautifulSoup(html, "html.parser")
 
 for tag in soup.find_all():
   if(verify_class_tag(tag)):
@@ -66,5 +53,5 @@ for tag in soup.find_all():
           continue
         if("Start downloading" in tag_download.attrs['title']):
           download_pdf("https://www.sbc.org.br" + get_href(tag_download))
-          print("Feito")
+          print(os.listdir())
     
