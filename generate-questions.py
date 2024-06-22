@@ -1,6 +1,7 @@
 from urllib import request
 import os
 from selenium import webdriver
+from time import sleep
 from bs4 import BeautifulSoup
 
 def get_href(tag):
@@ -24,12 +25,13 @@ def download_pdf(lnk):
       
   driver = webdriver.Chrome(options = options)
   driver.get(lnk)
-  
+  sleep(5)
   driver.close()
 
 response = request.urlopen("https://www.sbc.org.br/documentos-da-sbc/category/153-provas-e-gabaritos-do-poscomp")
 html = response.read().decode('UTF-8')
 soup = BeautifulSoup(html, "html.parser")
+dictionary_links = {'exam':[], 'template':[]}
 
 for tag in soup.find_all():
   if(verify_class_tag(tag)):
@@ -42,16 +44,19 @@ for tag in soup.find_all():
       if(verify_class_tag(year_tag)):
         continue
       if("jd_download_url" in year_tag.attrs['class']):
-        links.append(get_href(year_tag))
+        page_donwload = request.urlopen("https://www.sbc.org.br" + get_href(year_tag)).read().decode('UTF-8')
+        soup_download = BeautifulSoup(page_donwload, 'html.parser')
+        for tag_download in soup_download.find_all():
+          if("title" not in list(tag_download.attrs)):
+            continue
+          if("Start downloading" in tag_download.attrs['title']):
+            if("gabarito" in get_href(year_tag)):
+              dictionary_links['template'].append("https://www.sbc.org.br" + get_href(tag_download))
+            else: 
+              dictionary_links['exam'].append("https://www.sbc.org.br" + get_href(tag_download))
       
-    links = links[::-1]
-    for link in links:
-      page_donwload = request.urlopen("https://www.sbc.org.br" + link).read().decode('UTF-8')
-      soup_download = BeautifulSoup(page_donwload, 'html.parser')
-      for tag_download in soup_download.find_all():
-        if("title" not in list(tag_download.attrs)):
-          continue
-        if("Start downloading" in tag_download.attrs['title']):
-          download_pdf("https://www.sbc.org.br" + get_href(tag_download))
-          print(os.listdir())
+
+for links in dictionary_links.values():
+  for link in links:
+    download_pdf(link)
     
